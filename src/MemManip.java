@@ -1,3 +1,6 @@
+/**
+ * Created by Philippe on 2017-03-26.
+ */
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -8,22 +11,22 @@ import com.sun.jna.win32.W32APIOptions;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static sun.security.krb5.internal.Krb5.DEBUG;
 
-/**
- * Created by Philippe on 2017-03-26.
- */
 public class MemManip {
     static Kernel32 kernel32 = (Kernel32) Native.loadLibrary(Kernel32.class, W32APIOptions.UNICODE_OPTIONS);
     public static int PROCESS_VM_READ= 0x0010;
     public static int PROCESS_VM_WRITE = 0x0020;
     public static int PROCESS_VM_OPERATION = 0x0008;
     public static int PROCESS_VM_QUERY_INFO = 0x0400;
-    private List<WinNT.MEMORY_BASIC_INFORMATION> readablePages;
+    public List<WinNT.MEMORY_BASIC_INFORMATION> readablePages;
+    public LinkedHashMap<String,Integer> valueContainer;
     WinNT.HANDLE processHandle;
     Pointer process;
     int size_t = 0;
@@ -80,12 +83,12 @@ public class MemManip {
     }
 
     private static Pointer OpenProcess(int pid) {
-        WinNT.HANDLE process = kernel32.OpenProcess(PROCESS_VM_READ|0x0400, true, pid);
+        WinNT.HANDLE process = kernel32.OpenProcess(PROCESS_VM_READ|0x0400|PROCESS_VM_WRITE|PROCESS_VM_OPERATION, true, pid);
         return process.getPointer();
     }
 
     public boolean OpenProcess() {
-        this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ|0x0400, true, this.PID);
+        this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ|0x0400|PROCESS_VM_WRITE|PROCESS_VM_OPERATION, true, this.PID);
         this.process = this.processHandle.getPointer();
         return this.process != null;
     }
@@ -105,20 +108,46 @@ public class MemManip {
         return false;
     }
 
-    public void searchFor(int value,int size){
+    public int searchFor(int value,int size){
+        this.valueContainer = new LinkedHashMap<>();
         memBuffer = new Memory(size);
         Pointer add = new Pointer(0);
         IntByReference readBytes = new IntByReference(0);
-        for(int i=0x0;i<(new WinBase.SYSTEM_INFO()).lpMaximumApplicationAddress.getInt(0);i+=8){
-            add = new Pointer(i);
-            kernel32.ReadProcessMemory(this.processHandle,add,memBuffer,size,readBytes);
-            if(value == memBuffer.getInt(0)){
-                System.out.println(String.format("0x%08X", i)+":"+memBuffer.getInt(0));
+        int count=0;
+        for(WinNT.MEMORY_BASIC_INFORMATION page : this.readablePages){
+            int offset=0;
+            Pointer current = page.baseAddress;
+            Pointer last = new Pointer(pointerToAddress(page.baseAddress)+page.regionSize.longValue());
+            long memSize = pointerToAddress(last)-pointerToAddress(current);
+            memBuffer = new Memory((int)memSize);
+            kernel32.ReadProcessMemory(this.processHandle,current,memBuffer,(int)memSize,readBytes);
+            while(offset<(int)memSize-2){
+                memBuffer.getInt(offset);
+                if(value == memBuffer.getInt(offset)){
+                    valueContainer.put(String.format("0x%08X", offset+pointerToAddress(current)),memBuffer.getInt(offset));
+                    System.out.println(String.format("0x%08X", offset+pointerToAddress(current))+":"+memBuffer.getInt(offset));
+                }
+                offset+=size;
             }
-            if (i%800000 == 0){
-                System.out.println(i);
+
+        }
+        return this.valueContainer.size();
+    }
+
+    public int narrow(int value, int size){
+        System.out.println("Started narrowing");
+        LinkedHashMap<String, Integer> temp=new LinkedHashMap<>();
+        for(Map.Entry<String,Integer>entry : this.valueContainer.entrySet()){
+            String entryKey = entry.getKey();
+            memBuffer=new Memory(size);
+            kernel32.ReadProcessMemory(this.processHandle,new Pointer(addressToLong(entryKey)),memBuffer,size,new IntByReference(0));
+            if(memBuffer.getInt(0)==value){
+                temp.put(entryKey,memBuffer.getInt(0));
+                System.out.println(entryKey+":"+memBuffer.getInt(0));
             }
         }
+        this.valueContainer=temp;
+        return this.valueContainer.size();
     }
 
     public static List<WinNT.MEMORY_BASIC_INFORMATION> getPageRanges(WinNT.HANDLE hOtherProcess) {
@@ -159,6 +188,8 @@ public class MemManip {
             lpMem = new Pointer(pointerToAddress(mbi.baseAddress) + mbi.regionSize.longValue());
         }
         this.readablePages = ret;
+        if(!fractureMemChunks())
+            return false;
         return true;
     }
 
@@ -166,5 +197,41 @@ public class MemManip {
         String val = ptr.toString();
         String cut = val.substring(9);
         return new BigInteger(cut,16).longValue();
+    }
+
+    public static long addressToLong(String addr){
+        String cut = addr.substring(2);
+        return new BigInteger(cut,16).longValue();
+    }
+
+    public boolean fractureMemChunks(){
+        boolean fractured = false;
+        WinNT.MEMORY_BASIC_INFORMATION newPage = null, oldPage = null, lastPage=null;
+        for(WinNT.MEMORY_BASIC_INFORMATION page:this.readablePages){
+            Pointer current = page.baseAddress;
+            Pointer last = new Pointer(pointerToAddress(page.baseAddress)+page.regionSize.longValue());
+            long memSize = pointerToAddress(last)-pointerToAddress(current);
+            if (memSize > 1955555){
+                oldPage = page;
+                newPage = page;
+                lastPage = page;
+                oldPage.regionSize = new BaseTSD.SIZE_T(1955554);
+                newPage.baseAddress = new Pointer(pointerToAddress(page.baseAddress)+1955554);
+
+                fractured = true;
+                break;
+            }
+
+        }
+        /**
+         *  TODO:This is VERY RISKY CODE... MUST REFACTOR TO SAFE HAVEN (aka no possibility for infinite loop)
+         */
+        if(fractured) {
+            this.readablePages.remove(this.readablePages.indexOf(lastPage));
+            this.readablePages.add(oldPage);
+            this.readablePages.add(newPage);
+            return fractureMemChunks();
+        }
+        return true;
     }
 }

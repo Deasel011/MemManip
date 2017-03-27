@@ -6,6 +6,8 @@ import com.sun.jna.ptr.IntByReference;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 
 /**
  * Created by Philippe on 2017-03-26.
@@ -25,6 +27,10 @@ public class Test {
         System.out.println("is opened? "+manip.OpenProcess());
         manip.loadPageRanges();
         manip.searchFor(384,4);
+        TimeUnit.SECONDS.sleep(10);
+        manip.narrow(383,4);
+        TimeUnit.SECONDS.sleep(10);
+        manip.narrow(382,4);
         //manip.getRegions(4);
         //manip.searchFor(384,4);
 //        List<WinNT.MEMORY_BASIC_INFORMATION> pages = MemManip.getPageRanges(manip.processHandle);
