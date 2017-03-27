@@ -34,10 +34,6 @@ public class MemManip {
     int PID = 0;
     Memory memBuffer;
 
-    public static void main(String[]args){
-        MemManip memManip = new MemManip();
-    }
-
     public int[] FindAddressesWith(String query) throws Exception {
         if (PID == 0) {
             throw new Exception("No PID has been defined yet.");

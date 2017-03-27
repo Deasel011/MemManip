@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="MemManip:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/MemManip_jar</output-path>
+    <root id="archive" name="MemManip.jar">
+      <element id="module-output" name="MemManip" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jna-4.4.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jna-platform-4.4.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
