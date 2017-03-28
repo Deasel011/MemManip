@@ -23,14 +23,14 @@ public class Test {
         int readOffset = 0;
         MemManip manip = new MemManip();
 
-        manip.PID = manip.FindProcessId("Game.exe");
+        manip.PID = manip.FindProcessId("Grim Dawn.exe");
         System.out.println("is opened? "+manip.OpenProcess());
         manip.loadPageRanges();
-        manip.searchFor(384,4);
+        manip.searchFor(3156,SIZE);
         TimeUnit.SECONDS.sleep(10);
-        manip.narrow(383,4);
+        manip.narrow(3158,SIZE);
         TimeUnit.SECONDS.sleep(10);
-        manip.narrow(382,4);
+        manip.narrow(3156,SIZE);
         //manip.getRegions(4);
         //manip.searchFor(384,4);
 //        List<WinNT.MEMORY_BASIC_INFORMATION> pages = MemManip.getPageRanges(manip.processHandle);

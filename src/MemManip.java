@@ -20,10 +20,10 @@ import static sun.security.krb5.internal.Krb5.DEBUG;
 
 public class MemManip {
     static Kernel32 kernel32 = (Kernel32) Native.loadLibrary(Kernel32.class, W32APIOptions.UNICODE_OPTIONS);
-    public static int PROCESS_VM_READ = 0x0010;
-    public static int PROCESS_VM_WRITE = 0x0020;
-    public static int PROCESS_VM_OPERATION = 0x0008;
-    public static int PROCESS_VM_QUERY_INFO = 0x0400;
+    public static final int PROCESS_QUERY_INFORMATION = 0x0400;
+    public static final int PROCESS_VM_READ = 0x0010;
+    public static final int PROCESS_VM_WRITE = 0x0020;
+    public static final int PROCESS_VM_OPERATION = 0x0008;
     public List<WinNT.MEMORY_BASIC_INFORMATION> readablePages;
     public LinkedHashMap<String, Integer> valueContainer;
     WinNT.HANDLE processHandle;
@@ -77,18 +77,18 @@ public class MemManip {
     }
 
     private static Pointer OpenProcess(int pid) {
-        WinNT.HANDLE process = kernel32.OpenProcess(PROCESS_VM_READ | 0x0400 | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, pid);
+        WinNT.HANDLE process = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, pid);
         return process.getPointer();
     }
 
     public boolean OpenProcess() {
-        this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ | 0x0400 | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, this.PID);
+        this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, this.PID);
         try {
             this.process = this.processHandle.getPointer();
         }catch(NullPointerException e){
-            System.out.println("Handle is null, watch access rights.");
+            System.out.println("Error: "+kernel32.GetLastError());
         }
-        return this.process != null;
+        return this.processHandle != null;
     }
 
     public boolean setSize(int size_t) {
