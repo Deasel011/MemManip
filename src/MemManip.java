@@ -15,8 +15,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static sun.security.krb5.internal.Krb5.DEBUG;
 
@@ -229,5 +227,9 @@ public class MemManip {
             return fractureMemChunks();
         }
         return true;
+    }
+
+    public boolean hasProcessId(){
+        return this.processHandle != null;
     }
 }
