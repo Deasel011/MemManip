@@ -28,7 +28,7 @@ public class MemManip {
     public LinkedHashMap<String, Integer> valueContainer;
     WinNT.HANDLE processHandle;
     Pointer process;
-    int PID = 0;
+    public int PID = 0;
     Memory memBuffer;
 
     public int FindProcessId(String processName) {
