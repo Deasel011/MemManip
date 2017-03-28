@@ -28,19 +28,8 @@ public class MemManip {
     public LinkedHashMap<String, Integer> valueContainer;
     WinNT.HANDLE processHandle;
     Pointer process;
-    int size_t = 0;
     int PID = 0;
     Memory memBuffer;
-
-    public int[] FindAddressesWith(String query) throws Exception {
-        if (PID == 0) {
-            throw new Exception("No PID has been defined yet.");
-        }
-        if (this.process == null) {
-            this.process = OpenProcess(PID);
-        }
-        return null;
-    }
 
     public int FindProcessId(String processName) {
         // This Reference will contain the processInfo that will be parsed to recover the ProcessId
@@ -76,34 +65,9 @@ public class MemManip {
         }
     }
 
-    private static Pointer OpenProcess(int pid) {
-        WinNT.HANDLE process = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, pid);
-        return process.getPointer();
-    }
-
     public boolean OpenProcess() {
         this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, this.PID);
-        try {
-            this.process = this.processHandle.getPointer();
-        }catch(NullPointerException e){
-            System.out.println("Error: "+kernel32.GetLastError());
-        }
         return this.processHandle != null;
-    }
-
-    public boolean setSize(int size_t) {
-        this.size_t = size_t;
-        return size_t != 0;
-    }
-
-    public boolean loadMemBuffer(int bufferSize) {
-        memBuffer = new Memory(bufferSize);
-        Pointer baseAdd = new Pointer(0x0);
-        IntByReference readBytes = new IntByReference(0);
-        kernel32.ReadProcessMemory(this.processHandle, baseAdd, memBuffer, 8, readBytes);
-        System.out.println("Read bytes: " + readBytes.toString());
-        System.out.println(memBuffer.getCharArray(0, 1));
-        return false;
     }
 
     public int searchFor(int value, int size) {
@@ -111,7 +75,7 @@ public class MemManip {
         memBuffer = new Memory(size);
         Pointer add = new Pointer(0);
         IntByReference readBytes = new IntByReference(0);
-        int count = 0;
+
         for (WinNT.MEMORY_BASIC_INFORMATION page : this.readablePages) {
             int offset = 0;
             Pointer current = page.baseAddress;
