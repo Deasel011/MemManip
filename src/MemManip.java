@@ -83,7 +83,11 @@ public class MemManip {
 
     public boolean OpenProcess() {
         this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ | 0x0400 | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, this.PID);
-        this.process = this.processHandle.getPointer();
+        try {
+            this.process = this.processHandle.getPointer();
+        }catch(NullPointerException e){
+            System.out.println("Handle is null, watch access rights.");
+        }
         return this.process != null;
     }
 
