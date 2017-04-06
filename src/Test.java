@@ -23,7 +23,8 @@ public class Test {
         int readOffset = 0;
         MemManip manip = new MemManip();
 
-        manip.PID = manip.FindProcessId("Grim Dawn.exe");
+        manip.PID = manip.FindProcessId("Darkest.exe");
+        System.out.println(manip.PID);
         System.out.println("is opened? "+manip.OpenProcess());
         manip.loadPageRanges();
         manip.searchFor(6100,SIZE);

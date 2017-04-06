@@ -5,7 +5,6 @@
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.W32APIOptions;
@@ -30,6 +29,7 @@ public class MemManip {
     Pointer process;
     public int PID = 0;
     Memory memBuffer;
+
 
     public int FindProcessId(String processName) {
         // This Reference will contain the processInfo that will be parsed to recover the ProcessId
@@ -67,6 +67,7 @@ public class MemManip {
 
     public boolean OpenProcess() {
         this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, this.PID);
+        System.out.println("Last error code:"+kernel32.GetLastError());
         return this.processHandle != null;
     }
 
@@ -110,6 +111,20 @@ public class MemManip {
         }
         this.valueContainer = temp;
         return this.valueContainer.size();
+    }
+
+    public boolean set(int value, int size){
+        assert size == 4;
+        boolean res = false;
+        for (Map.Entry<String, Integer> entry : this.valueContainer.entrySet()) {
+            String entryKey = entry.getKey();
+            memBuffer = new Memory(size);
+            memBuffer.setInt(0,value);
+            kernel32.WriteProcessMemory(this.processHandle, new Pointer(addressToLong(entryKey)), memBuffer, size, new IntByReference(0));
+            if (kernel32.GetLastError() == 0)
+                    res = true;
+        }
+        return res;
     }
 
     public static List<WinNT.MEMORY_BASIC_INFORMATION> getPageRanges(WinNT.HANDLE hOtherProcess) {
