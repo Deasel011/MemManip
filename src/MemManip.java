@@ -30,7 +30,12 @@ public class MemManip {
     public int PID = 0;
     Memory memBuffer;
 
-
+    /**
+     * From Hybris95 at UnknownCheats
+     * Modified by Deasel011 (philippe)
+     * @param processName
+     * @return
+     */
     public int FindProcessId(String processName) {
         // This Reference will contain the processInfo that will be parsed to recover the ProcessId
         Tlhelp32.PROCESSENTRY32.ByReference processInfo = new Tlhelp32.PROCESSENTRY32.ByReference();
@@ -94,6 +99,7 @@ public class MemManip {
             }
 
         }
+        System.out.println("Done.");
         return this.valueContainer.size();
     }
 
@@ -109,6 +115,7 @@ public class MemManip {
                 System.out.println(entryKey + ":" + memBuffer.getInt(0));
             }
         }
+        System.out.println("Done.");
         this.valueContainer = temp;
         return this.valueContainer.size();
     }
@@ -127,6 +134,11 @@ public class MemManip {
         return res;
     }
 
+    /**
+     * From project jpexs-decompiler-master, cited at Programcreek.com example 4
+     * @param hOtherProcess
+     * @return
+     */
     public static List<WinNT.MEMORY_BASIC_INFORMATION> getPageRanges(WinNT.HANDLE hOtherProcess) {
         List<WinNT.MEMORY_BASIC_INFORMATION> ret = new ArrayList<>();
         WinNT.MEMORY_BASIC_INFORMATION mbi;
@@ -200,9 +212,6 @@ public class MemManip {
             }
 
         }
-        /**
-         *  TODO:This is VERY RISKY CODE... MUST REFACTOR TO SAFE HAVEN (aka no possibility for infinite loop)
-         */
         if (fractured) {
             this.readablePages.remove(this.readablePages.indexOf(lastPage));
             this.readablePages.add(oldPage);
@@ -210,6 +219,15 @@ public class MemManip {
             return fractureMemChunks();
         }
         return true;
+    }
+
+    public int intAtSingleEntry(int size){
+        for (Map.Entry<String, Integer> entry : this.valueContainer.entrySet()) {
+            String entryKey = entry.getKey();
+            memBuffer = new Memory(4);
+            kernel32.ReadProcessMemory(this.processHandle, new Pointer(MemManip.addressToLong(entryKey)), memBuffer, 4, new IntByReference(0));
+        }
+        return memBuffer.getInt(0);
     }
 
     public boolean hasProcessId(){
