@@ -25,18 +25,19 @@ public class Test {
     public static void main(String[] args) throws Exception {
         MemManip manip = new MemManip();
 
-        manip.PID = manip.FindProcessId("Grim Dawn.exe");
+        manip.PID = manip.FindProcessId("Darkest.exe");
         System.out.println(manip.PID);
         System.out.println("is opened? "+manip.OpenProcess());
         manip.loadPageRanges();
-        manip.searchFor(6002,SIZE);
-        System.out.println("Sell item now");
-        TimeUnit.SECONDS.sleep(3);
-        manip.narrow(6003,SIZE);
-        System.out.println("Rebuy item now");
-        TimeUnit.SECONDS.sleep(3);
-        manip.narrow(6002,SIZE);
-        System.out.println(manip.intAtSingleEntry(4));
+        manip.searchFor(5345,SIZE);
+//        System.out.println("Sell item now");
+//        TimeUnit.SECONDS.sleep(10);
+//        manip.narrow(222,SIZE);
+//        System.out.println("Rebuy item now");
+//        TimeUnit.SECONDS.sleep(10);
+//        manip.narrow(225,SIZE);
+//        System.out.println(manip.intAtSingleEntry(4));
+
 
 //        System.out.println(manip.intAt("0x1F706D60",SIZE));
 
