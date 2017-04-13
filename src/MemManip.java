@@ -78,7 +78,6 @@ public class MemManip {
     public int searchFor(int value, int size) {
         this.valueContainer = new LinkedHashMap<>();
         memBuffer = new Memory(size);
-        Pointer add = new Pointer(0);
         IntByReference readBytes = new IntByReference(0);
 
         for (WinNT.MEMORY_BASIC_INFORMATION page : this.readablePages) {
@@ -88,7 +87,7 @@ public class MemManip {
             long memSize = pointerToAddress(last) - pointerToAddress(current);
             memBuffer = new Memory((int) memSize);
             kernel32.ReadProcessMemory(this.processHandle, current, memBuffer, (int) memSize, readBytes);
-            while (offset < (int) memSize - 2) {
+            while (offset < (int) memSize - size) {
                 memBuffer.getInt(offset);
                 if (value == memBuffer.getInt(offset)) {
                     valueContainer.put(String.format("0x%08X", offset + pointerToAddress(current)), memBuffer.getInt(offset));
@@ -199,12 +198,12 @@ public class MemManip {
             Pointer current = page.baseAddress;
             Pointer last = new Pointer(pointerToAddress(page.baseAddress) + page.regionSize.longValue());
             long memSize = pointerToAddress(last) - pointerToAddress(current);
-            if (memSize > 1955555) {
+            if (memSize > 1921024) {
                 oldPage = page;
                 newPage = page;
                 lastPage = page;
-                oldPage.regionSize = new BaseTSD.SIZE_T(1955554);
-                newPage.baseAddress = new Pointer(pointerToAddress(page.baseAddress) + 1955554);
+                oldPage.regionSize = new BaseTSD.SIZE_T(1921024);
+                newPage.baseAddress = new Pointer(pointerToAddress(page.baseAddress) + 1921024);
 
                 fractured = true;
                 break;

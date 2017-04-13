@@ -30,9 +30,9 @@ public class Test {
         System.out.println("is opened? "+manip.OpenProcess());
         manip.loadPageRanges();
         manip.searchFor(5345,SIZE);
-//        System.out.println("Sell item now");
-//        TimeUnit.SECONDS.sleep(10);
-//        manip.narrow(222,SIZE);
+        System.out.println("Sell item now");
+        TimeUnit.SECONDS.sleep(10);
+        manip.narrow(5270,SIZE);
 //        System.out.println("Rebuy item now");
 //        TimeUnit.SECONDS.sleep(10);
 //        manip.narrow(225,SIZE);
