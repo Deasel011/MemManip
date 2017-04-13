@@ -72,7 +72,6 @@ public class MemManip {
 
     public boolean OpenProcess() {
         this.processHandle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, true, this.PID);
-        System.out.println("Last error code:"+kernel32.GetLastError());
         return this.processHandle != null;
     }
 
@@ -123,13 +122,13 @@ public class MemManip {
     public boolean set(int value, int size){
         assert size == 4;
         boolean res = false;
+        memBuffer = new Memory(size);
+        memBuffer.setInt(0,value);
         for (Map.Entry<String, Integer> entry : this.valueContainer.entrySet()) {
             String entryKey = entry.getKey();
-            memBuffer = new Memory(size);
-            memBuffer.setInt(0,value);
             kernel32.WriteProcessMemory(this.processHandle, new Pointer(addressToLong(entryKey)), memBuffer, size, new IntByReference(0));
             if (kernel32.GetLastError() == 0)
-                    res = true;
+                res = true;
         }
         return res;
     }
