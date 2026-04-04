@@ -12,7 +12,6 @@ import (
 
 var (
 	kernel32               = syscall.NewLazyDLL("kernel32.dll")
-	procOpenProcess        = kernel32.NewProc("OpenProcess")
 	procCloseHandle        = kernel32.NewProc("CloseHandle")
 	procReadProcessMemory  = kernel32.NewProc("ReadProcessMemory")
 	procWriteProcessMemory = kernel32.NewProc("WriteProcessMemory")
@@ -29,15 +28,11 @@ func NewProcess() *Process {
 }
 
 func (p *Process) OpenByPID(pid uint32) error {
-	r1, _, err := procOpenProcess.Call(
-		uintptr(ProcessQueryInformation|ProcessVMRead|ProcessVMWrite|ProcessVMOperation),
-		0,
-		uintptr(pid),
-	)
-	if r1 == 0 {
-		return fmt.Errorf("OpenProcess(%d): %w", pid, err)
+	handle, err := OpenProcess(pid, defaultProcessAccess)
+	if err != nil {
+		return err
 	}
-	p.handle = Handle(r1)
+	p.handle = Handle(handle)
 	return nil
 }
 
