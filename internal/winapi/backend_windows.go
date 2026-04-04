@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"golang.org/x/sys/windows"
 	"memmanip/internal/memscan"
 )
 
@@ -53,35 +54,19 @@ func (p *Process) EnumerateRegions() ([]memscan.Region, error) {
 		return nil, fmt.Errorf("process is not open")
 	}
 
-	var si SystemInfo
-	procGetSystemInfo.Call(uintptr(unsafe.Pointer(&si)))
-
-	regions := make([]memscan.Region, 0, 1024)
-	for addr := si.MinimumAddress; addr < si.MaximumAddress; {
-		var mbi MemoryBasicInformation
-		r1, _, _ := procVirtualQueryEx.Call(
-			uintptr(p.handle),
-			addr,
-			uintptr(unsafe.Pointer(&mbi)),
-			unsafe.Sizeof(mbi),
-		)
-		if r1 == 0 {
-			break
-		}
-
-		regions = append(regions, memscan.Region{
-			Base:     mbi.BaseAddress,
-			Size:     mbi.RegionSize,
-			Readable: isReadable(mbi),
-		})
-
-		next := mbi.BaseAddress + mbi.RegionSize
-		if next <= addr {
-			break
-		}
-		addr = next
+	pages, err := ListCommittedReadablePages(windows.Handle(p.handle))
+	if err != nil {
+		return nil, err
 	}
 
+	regions := make([]memscan.Region, 0, len(pages))
+	for _, page := range pages {
+		regions = append(regions, memscan.Region{
+			Base:     page.BaseAddress,
+			Size:     page.Size,
+			Readable: true,
+		})
+	}
 	return regions, nil
 }
 

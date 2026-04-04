@@ -53,6 +53,7 @@ func (s *Scanner) Search(value []byte, stride int) ([]uintptr, error) {
 	if err != nil {
 		return nil, fmt.Errorf("enumerate regions: %w", err)
 	}
+	regions = fractureMemChunks(regions)
 
 	s.matches = make(map[uintptr]struct{})
 	for _, region := range regions {
