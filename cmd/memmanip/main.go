@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -10,66 +9,89 @@ import (
 	"memmanip/internal/winapi"
 )
 
+type optionalInt struct {
+	set   bool
+	value int
+}
+
+func (o *optionalInt) Set(s string) error {
+	o.set = true
+	_, err := fmt.Sscanf(s, "%d", &o.value)
+	if err != nil {
+		return fmt.Errorf("invalid integer %q", s)
+	}
+	return nil
+}
+
+func (o *optionalInt) String() string {
+	if !o.set {
+		return ""
+	}
+	return fmt.Sprintf("%d", o.value)
+}
+
 func main() {
 	var (
-		pid     = flag.Uint("pid", 0, "target process ID")
-		mode    = flag.String("mode", "search", "operation: search|narrow|set")
-		value   = flag.Int("value", 0, "target 32-bit integer value")
-		initial = flag.Int("initial", 0, "initial value used before narrow/set")
-		stride  = flag.Int("stride", 4, "scan step in bytes")
+		processName string
+		searchValue int
+		narrowValue optionalInt
+		setValue    optionalInt
+		size        int
 	)
+
+	flag.StringVar(&processName, "process", "", "target process executable name (example: Darkest.exe)")
+	flag.IntVar(&searchValue, "search", 0, "initial int value to search for")
+	flag.Var(&narrowValue, "narrow", "optional int value to narrow existing results")
+	flag.Var(&setValue, "set", "optional int value to write at remaining addresses")
+	flag.IntVar(&size, "size", 4, "value size in bytes")
 	flag.Parse()
 
-	if *pid == 0 {
-		log.Fatal("-pid is required")
+	if processName == "" {
+		log.Fatal("-process is required")
 	}
+	if size != 4 {
+		log.Fatalf("unsupported -size=%d (only 4-byte int32 is currently supported)", size)
+	}
+
+	pid, err := winapi.FindProcessID(processName)
+	if err != nil {
+		log.Fatalf("find process id: %v", err)
+	}
+	fmt.Printf("process=%s pid=%d\n", processName, pid)
 
 	backend := winapi.NewProcess()
 	scanner := memscan.NewScanner(backend)
-	if err := scanner.Open(uint32(*pid)); err != nil {
+	if err := scanner.Open(pid); err != nil {
 		log.Fatalf("open process: %v", err)
 	}
 	defer scanner.Close()
 
-	switch *mode {
-	case "search":
-		matches, err := scanner.Search(int32LE(*value), *stride)
-		if err != nil {
-			log.Fatalf("search failed: %v", err)
-		}
-		printMatches(matches)
-	case "narrow":
-		if _, err := scanner.Search(int32LE(*initial), *stride); err != nil {
-			log.Fatalf("seed search failed: %v", err)
-		}
-		matches, err := scanner.Narrow(int32LE(*value), *stride)
+	matches, err := scanner.Search(memscan.EncodeInt32LE(int32(searchValue)), size)
+	if err != nil {
+		log.Fatalf("search failed: %v", err)
+	}
+	printMatches("search", matches)
+
+	if narrowValue.set {
+		matches, err = scanner.Narrow(memscan.EncodeInt32LE(int32(narrowValue.value)), size)
 		if err != nil {
 			log.Fatalf("narrow failed: %v", err)
 		}
-		printMatches(matches)
-	case "set":
-		if _, err := scanner.Search(int32LE(*initial), *stride); err != nil {
-			log.Fatalf("seed search failed: %v", err)
-		}
-		updated, err := scanner.Set(int32LE(*value))
+		printMatches("narrow", matches)
+	}
+
+	if setValue.set {
+		updated, err := scanner.Set(memscan.EncodeInt32LE(int32(setValue.value)))
 		if err != nil {
 			log.Fatalf("set failed: %v", err)
 		}
-		fmt.Printf("updated %d addresses\n", updated)
-	default:
-		log.Fatalf("unsupported mode %q", *mode)
+		fmt.Printf("set updated %d addresses\n", updated)
 	}
 }
 
-func int32LE(v int) []byte {
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, uint32(int32(v)))
-	return buf
-}
-
-func printMatches(matches []uintptr) {
-	fmt.Printf("matches: %d\n", len(matches))
+func printMatches(step string, matches []uintptr) {
+	fmt.Printf("%s matches: %d\n", step, len(matches))
 	for _, addr := range matches {
-		fmt.Printf("0x%X\n", addr)
+		fmt.Printf("0x%08X\n", uint32(addr))
 	}
 }
